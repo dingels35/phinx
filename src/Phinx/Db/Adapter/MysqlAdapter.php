@@ -190,6 +190,7 @@ class MysqlAdapter extends PdoAdapter implements AdapterInterface
             $column = new Column();
             $column->setName('id')
                    ->setType('integer')
+                   ->setSigned(false)
                    ->setIdentity(true);
             
             array_unshift($columns, $column);
@@ -333,7 +334,7 @@ class MysqlAdapter extends PdoAdapter implements AdapterInterface
     {
         $rows = $this->fetchAll(sprintf('SHOW COLUMNS FROM %s', $tableName));
         foreach ($rows as $column) {
-            if (strtolower($column['Field']) == strtolower($columnName)) {
+            if (strcasecmp($column['Field'], $columnName) === 0) {
                 return true;
             }
         }
@@ -371,7 +372,7 @@ class MysqlAdapter extends PdoAdapter implements AdapterInterface
         $this->startCommandTimer();
         $rows = $this->fetchAll(sprintf('DESCRIBE %s', $this->quoteTableName($tableName)));
         foreach ($rows as $row) {
-            if (strtolower($row['Field']) == strtolower($columnName)) {
+            if (strcasecmp($row['Field'], $columnName) === 0) {
                 $null = ($row['Null'] == 'NO') ? 'NOT NULL' : 'NULL';
                 $extra = ' ' . strtoupper($row['Extra']);
                 $definition = $row['Type'] . ' ' . $null . $extra;
@@ -674,6 +675,9 @@ class MysqlAdapter extends PdoAdapter implements AdapterInterface
             case static::PHINX_TYPE_STRING:
                 return array('name' => 'varchar', 'limit' => 255);
                 break;
+            case static::PHINX_TYPE_CHAR:
+                return array('name' => 'char', 'limit' => 255);
+                break;
             case static::PHINX_TYPE_TEXT:
                 return array('name' => 'text');
                 break;
@@ -741,6 +745,11 @@ class MysqlAdapter extends PdoAdapter implements AdapterInterface
                         $limit = null;
                     }
                     break;
+                case 'char':
+                    $type = static::PHINX_TYPE_CHAR;
+                    if ($limit == 255) {
+                        $limit = null;
+                    }
                 case 'int':
                     $type = static::PHINX_TYPE_INTEGER;
                     if ($limit == 11) {

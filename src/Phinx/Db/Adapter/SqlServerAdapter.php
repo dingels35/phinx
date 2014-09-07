@@ -277,7 +277,7 @@ class SqlServerAdapter extends PdoAdapter implements AdapterInterface
         // passing 'null' is to remove column comment
         $currentComment = $this->getColumnComment($tableName, $column->getName());
 
-        $comment = (strtoupper($column->getComment()) !== 'NULL') ? $this->getConnection()->quote($column->getComment()) : '\'\'';
+        $comment = (strcasecmp($column->getComment(), 'NULL') !== 0) ? $this->getConnection()->quote($column->getComment()) : '\'\'';
         $command = $currentComment === false ? 'sp_addextendedproperty' : 'sp_updateextendedproperty';
         return sprintf(
             "EXECUTE %s N'MS_Description', N%s, N'SCHEMA', N'%s', N'TABLE', N'%s', N'COLUMN', N'%s';",
@@ -814,6 +814,9 @@ ORDER BY T.[name], I.[index_id];";
             case static::PHINX_TYPE_STRING:
                 return array('name' => 'nvarchar', 'limit' => 255);
                 break;
+            case static::PHINX_TYPE_CHAR:
+                return array('name' => 'nchar', 'limit' => 255);
+                break;
             case static::PHINX_TYPE_TEXT:
                 return array('name' => 'ntext');
                 break;
@@ -867,8 +870,10 @@ ORDER BY T.[name], I.[index_id];";
         switch ($sqlType) {
             case 'nvarchar':
             case 'varchar':
-            case 'char':
                 return static::PHINX_TYPE_STRING;
+            case 'char':
+            case 'nchar':
+                return static::PHINX_TYPE_CHAR;
             case 'text':
             case 'ntext':
                 return static::PHINX_TYPE_TEXT;
@@ -1077,7 +1082,7 @@ SQL;
      * {@inheritdoc}
      */
     public function migrated(MigrationInterface $migration, $direction, $startTime, $endTime) {
-        if (strtolower($direction) == MigrationInterface::UP) {
+        if (strcasecmp($direction, MigrationInterface::UP) === 0) {
             // up
             $sql = sprintf(
                 "INSERT INTO %s ([version], [start_time], [end_time]) VALUES ('%s', '%s', '%s');",
