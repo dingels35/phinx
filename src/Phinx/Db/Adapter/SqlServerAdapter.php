@@ -981,6 +981,9 @@ SQL;
         if (!in_array($sqlType['name'], $noLimits) && ($column->getLimit() || isset($sqlType['limit']))) {
             $buffer[] = sprintf('(%s)', $column->getLimit() ? $column->getLimit() : $sqlType['limit']);
         }
+        if ($column->getPrecision() && $column->getScale()) {
+            $buffer[] = '(' . $column->getPrecision() . ',' . $column->getScale() . ')';
+        }
 
         $properties = $column->getProperties();
         $buffer[] = $column->getType() == 'filestream' ? 'FILESTREAM' : '';
@@ -1001,7 +1004,6 @@ SQL;
             $buffer[] = 'IDENTITY(1, 1)';
         }
 
-        // TODO - add precision & scale for decimals
         return implode(' ', $buffer);
     }
     
